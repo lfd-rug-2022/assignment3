@@ -73,6 +73,7 @@ def get_emb_matrix(voc, emb):
 
 
 def create_model(Y_train, emb_matrix):
+    print(f"y train is {Y_train[0]}")
     '''Create the Keras model to use'''
     # Define settings, you might want to create cmd line args for them
     learning_rate = 0.01
@@ -81,14 +82,16 @@ def create_model(Y_train, emb_matrix):
     # Take embedding dim and size from emb_matrix
     embedding_dim = len(emb_matrix[0])
     num_tokens = len(emb_matrix)
-    num_labels = len(Y_train[0])
+    num_labels = len(set(Y_train))
+
     # Now build the model
     model = Sequential()
     model.add(Embedding(num_tokens, embedding_dim, embeddings_initializer=Constant(emb_matrix),trainable=False))
     # Here you should add LSTM layers (and potentially dropout)
-    raise NotImplementedError("Add LSTM layer(s) here")
+    raise NotImplementedError(f" Emb matrix {embedding_dim} Add LSTM layer(s) here")
+    model.add(LSTM(300))
     # Ultimately, end with dense layer with softmax
-    model.add(Dense(input_dim=embedding_dim, units=num_labels, activation="softmax"))
+    model.add(Dense(input_dim=300, units=num_labels, activation="softmax"))
     # Compile model using our settings, check for accuracy
     model.compile(loss=loss_function, optimizer=optim, metrics=['accuracy'])
     return model
