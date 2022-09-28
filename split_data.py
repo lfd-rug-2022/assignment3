@@ -9,10 +9,14 @@ with open("reviews.txt", "r") as fh:
 shuffle(reviews)
 
 train_data = reviews[:int(0.8* len(reviews))]
-test_data = reviews[int(0.8* len(reviews)): ]
+dev_data = reviews[int(0.8* len(reviews)): int(0.9* len(reviews)) ]
+test_data = reviews[int(0.9* len(reviews)): ]
 
 with open("train.txt", "w") as fh:
     fh.write("\n".join(train_data))
 
 with open("dev.txt", "w") as fh:
+    fh.write("\n".join(dev_data))
+
+with open("test.txt", "w") as fh:
     fh.write("\n".join(test_data))
