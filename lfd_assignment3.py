@@ -88,12 +88,14 @@ def create_model(Y_train, emb_matrix):
     model = Sequential()
     model.add(Embedding(num_tokens, embedding_dim, embeddings_initializer=Constant(emb_matrix),trainable=False))
     # Here you should add LSTM layers (and potentially dropout)
-    raise NotImplementedError(f" Emb matrix {embedding_dim} Add LSTM layer(s) here")
+    # raise NotImplementedError(f" Emb matrix {embedding_dim} Add LSTM layer(s) here")
     model.add(LSTM(300))
     # Ultimately, end with dense layer with softmax
-    model.add(Dense(input_dim=300, units=num_labels, activation="softmax"))
+    model.add(Dense(units=num_labels, activation="softmax"))
     # Compile model using our settings, check for accuracy
     model.compile(loss=loss_function, optimizer=optim, metrics=['accuracy'])
+
+    print(model.summary())
     return model
 
 
