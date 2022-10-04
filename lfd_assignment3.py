@@ -8,16 +8,21 @@ import argparse
 import numpy as np
 from keras.models import Sequential
 from keras.layers.core import Dense
-from keras.layers import Embedding, LSTM
+from keras.layers import Embedding, LSTM, Dropout
 from keras.initializers import Constant
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.preprocessing import LabelBinarizer
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras.layers import TextVectorization
+from keras.callbacks import EarlyStopping
+from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
+
 import tensorflow as tf
 # Make reproducible as much as possible
 np.random.seed(1234)
 tf.random.set_seed(1234)
+tf.keras.utils.set_random_seed(1234)
 python_random.seed(1234)
 
 
@@ -27,7 +32,7 @@ def create_arg_parser():
                         help="Input file to learn from (default train.txt)")
     parser.add_argument("-d", "--dev_file", type=str, default='dev.txt',
                         help="Separate dev set to read in (default dev.txt)")
-    parser.add_argument("-t", "--test_file", type=str,
+    parser.add_argument("-t", "--test_file", type=str, default='test.txt',
                         help="If added, use trained model to predict on test set")
     parser.add_argument("-e", "--embeddings", default='glove_reviews.json', type=str,
                         help="Embedding file we are using (default glove_reviews.json)")
@@ -76,9 +81,9 @@ def create_model(Y_train, emb_matrix):
     print(f"y train is {Y_train[0]}")
     '''Create the Keras model to use'''
     # Define settings, you might want to create cmd line args for them
-    learning_rate = 0.01
+    learning_rate = 1e-4
     loss_function = 'categorical_crossentropy'
-    optim = SGD(learning_rate=learning_rate)
+    optim = Adam(learning_rate=learning_rate)
     # Take embedding dim and size from emb_matrix
     embedding_dim = len(emb_matrix[0])
     num_tokens = len(emb_matrix)
@@ -86,10 +91,14 @@ def create_model(Y_train, emb_matrix):
 
     # Now build the model
     model = Sequential()
-    model.add(Embedding(num_tokens, embedding_dim, embeddings_initializer=Constant(emb_matrix),trainable=False))
+    model.add(Embedding(num_tokens, embedding_dim, 
+                        embeddings_initializer=Constant(emb_matrix),trainable=True))
     # Here you should add LSTM layers (and potentially dropout)
     # raise NotImplementedError(f" Emb matrix {embedding_dim} Add LSTM layer(s) here")
-    model.add(LSTM(300))
+    model.add(Dense(units=512, activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(LSTM(512, recurrent_dropout=0.2))
+    model.add(Dropout(0.5))
     # Ultimately, end with dense layer with softmax
     model.add(Dense(units=num_labels, activation="softmax"))
     # Compile model using our settings, check for accuracy
@@ -108,9 +117,17 @@ def train_model(model, X_train, Y_train, X_dev, Y_dev):
     epochs = 50
     # Early stopping: stop training when there are three consecutive epochs without improving
     # It's also possible to monitor the training loss with monitor="loss"
-    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+    earlystopping = EarlyStopping(monitor='val_loss', patience=3)
+    mckpt = ModelCheckpoint('best_model.h5', monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
+
     # Finally fit the model to our data
-    model.fit(X_train, Y_train, verbose=verbose, epochs=epochs, callbacks=[callback], batch_size=batch_size, validation_data=(X_dev, Y_dev))
+    model.fit(X_train, Y_train, verbose=verbose, epochs=epochs, 
+              callbacks=[earlystopping, mckpt], batch_size=batch_size, 
+              validation_data=(X_dev, Y_dev))
+    
+    # load the saved model
+    model = load_model('best_model.h5')
+
     # Print final accuracy for the model (clearer overview)
     test_set_predict(model, X_dev, Y_dev, "dev")
     return model
@@ -125,6 +142,7 @@ def test_set_predict(model, X_test, Y_test, ident):
     # If you have gold data, you can calculate accuracy
     Y_test = np.argmax(Y_test, axis=1)
     print('Accuracy on own {1} set: {0}'.format(round(accuracy_score(Y_test, Y_pred), 3), ident))
+    print('Macro F1 on own {1} set: {0}'.format(round(f1_score(Y_test, Y_pred, average = 'macro'), 3), ident))
 
 
 def main():
