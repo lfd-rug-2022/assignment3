@@ -29,9 +29,6 @@ python bert_variants.py --langmodel_name distilbert-base-uncased
 # distilbert-base-uncased
 # albert-base-v2
 '''
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import CategoricalCrossentropy
