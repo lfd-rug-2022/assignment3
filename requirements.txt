@@ -1,0 +1,8 @@
+sentencepiece
+transformers
+tensorflow
+keras
+sklearn
+matplotlib
+numpy
+pandas
